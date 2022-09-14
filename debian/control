@@ -1,0 +1,29 @@
+Source: python-opentelemetry-instrumentation-grpc
+Section: python
+Priority: optional
+Maintainer: Pexip AS <packaging@pexip.com>
+Build-Depends: debhelper-compat (= 13),
+ dh-python,
+ python3-setuptools,
+ python3-all,
+ python3-opentelemetry-api (>= 1.12),
+ python3-opentelemetry-sdk (>= 1.12),
+ python3-opentelemetry-semantic-conventions,
+ python3-opentelemetry-instrumentation,
+ python3-wrapt,
+Standards-Version: 4.5.1
+Homepage: https://github.com/open-telemetry/opentelemetry-python/
+Rules-Requires-Root: no
+Vcs-Browser: https://github.com/pexip/os-python-opentelemetry-instrumentation-grpc
+Vcs-Git: https://github.com/pexip/os-python-opentelemetry-instrumentation-grpc.git
+
+Package: python3-opentelemetry-instrumentation-grpc
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}
+Description: GRPC Instrumentation Tools for OpenTelemetry Python
+ OpenTelemetry is a collection of tools, APIs, and SDKs. Use it to instrument,
+ generate, collect, and export telemetry data (metrics, logs, and traces) to
+ help you analyze your software’s performance and behavior.
+ .
+ This package installs the GRPC instrumentation library for Python 3.
+
