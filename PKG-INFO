@@ -1,27 +1,35 @@
 Metadata-Version: 2.1
 Name: opentelemetry-instrumentation-grpc
-Version: 0.33b0
+Version: 0.39b0
 Summary: OpenTelemetry gRPC instrumentation
-Home-page: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-grpc
-Author: OpenTelemetry Authors
-Author-email: cncf-opentelemetry-contributors@lists.cncf.io
-License: Apache-2.0
-Platform: any
+Project-URL: Homepage, https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-grpc
+Author-email: OpenTelemetry Authors <cncf-opentelemetry-contributors@lists.cncf.io>
+License-Expression: Apache-2.0
+License-File: LICENSE
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: Apache Software License
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
-Requires-Python: >=3.6
-Description-Content-Type: text/x-rst
-Provides-Extra: test
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+Requires-Dist: opentelemetry-api~=1.12
+Requires-Dist: opentelemetry-instrumentation==0.39b0
+Requires-Dist: opentelemetry-sdk~=1.12
+Requires-Dist: opentelemetry-semantic-conventions==0.39b0
+Requires-Dist: wrapt<2.0.0,>=1.0.0
 Provides-Extra: instruments
-License-File: LICENSE
+Requires-Dist: grpcio~=1.27; extra == 'instruments'
+Provides-Extra: test
+Requires-Dist: opentelemetry-instrumentation-grpc[instruments]; extra == 'test'
+Requires-Dist: opentelemetry-sdk~=1.12; extra == 'test'
+Requires-Dist: opentelemetry-test-utils==0.39b0; extra == 'test'
+Requires-Dist: protobuf~=3.13; extra == 'test'
+Description-Content-Type: text/x-rst
 
 OpenTelemetry gRPC Integration
 ==============================
