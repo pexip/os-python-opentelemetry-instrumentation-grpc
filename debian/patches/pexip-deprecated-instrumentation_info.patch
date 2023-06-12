@@ -1,0 +1,395 @@
+--- a/tests/test_aio_client_interceptor.py
++++ b/tests/test_aio_client_interceptor.py
+@@ -129,11 +129,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -157,11 +152,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ServerStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -185,11 +175,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ClientStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -215,10 +200,6 @@
+         )
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+ 
+         self.assertSpanHasAttributes(
+             span,
+--- a/tests/test_aio_server_interceptor.py
++++ b/tests/test_aio_server_interceptor.py
+@@ -118,11 +118,6 @@
+             self.assertEqual(span.name, rpc_call)
+             self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-            # Check version and name in span's instrumentation info
+-            self.assertEqualSpanInstrumentationInfo(
+-                span, opentelemetry.instrumentation.grpc
+-            )
+-
+             # Check attributes
+             self.assertSpanHasAttributes(
+                 span,
+@@ -177,11 +172,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             span,
+@@ -230,11 +220,6 @@
+         self.assertEqual(parent_span.name, rpc_call)
+         self.assertIs(parent_span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            parent_span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             parent_span,
+@@ -276,11 +261,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             span,
+@@ -331,11 +311,6 @@
+         self.assertEqual(parent_span.name, rpc_call)
+         self.assertIs(parent_span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            parent_span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             parent_span,
+@@ -526,11 +501,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # make sure this span errored, with the right status and detail
+         self.assertEqual(span.status.status_code, StatusCode.ERROR)
+         self.assertEqual(
+--- a/tests/test_client_interceptor.py
++++ b/tests/test_client_interceptor.py
+@@ -111,11 +111,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+     def test_unary_unary(self):
+         simple_method(self._stub)
+         spans = self.memory_exporter.get_finished_spans()
+@@ -125,11 +120,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -151,11 +141,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ServerStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -177,11 +162,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ClientStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -205,11 +185,6 @@
+         )
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+--- a/tests/test_client_interceptor_filter.py
++++ b/tests/test_client_interceptor_filter.py
+@@ -116,11 +116,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+     def test_unary_unary(self):
+         simple_method(self._stub)
+         spans = self.memory_exporter.get_finished_spans()
+@@ -130,11 +125,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -260,11 +250,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+     def test_unary_unary(self):
+         simple_method(self._stub)
+         spans = self.memory_exporter.get_finished_spans()
+@@ -274,11 +259,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -443,11 +423,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+     def test_unary_unary(self):
+         simple_method(self._stub)
+         spans = self.memory_exporter.get_finished_spans()
+@@ -457,11 +432,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/SimpleMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -483,11 +453,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ServerStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -509,11 +474,6 @@
+         self.assertEqual(span.name, "/GRPCTestServer/ClientStreamingMethod")
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+@@ -537,11 +497,6 @@
+         )
+         self.assertIs(span.kind, trace.SpanKind.CLIENT)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         self.assertSpanHasAttributes(
+             span,
+             {
+--- a/tests/test_server_interceptor.py
++++ b/tests/test_server_interceptor.py
+@@ -108,11 +108,6 @@
+             self.assertEqual(span.name, rpc_call)
+             self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-            # Check version and name in span's instrumentation info
+-            self.assertEqualSpanInstrumentationInfo(
+-                span, opentelemetry.instrumentation.grpc
+-            )
+-
+             # Check attributes
+             self.assertSpanHasAttributes(
+                 span,
+@@ -190,11 +185,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             span,
+@@ -259,11 +249,6 @@
+         self.assertEqual(parent_span.name, rpc_call)
+         self.assertIs(parent_span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            parent_span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             parent_span,
+@@ -319,11 +304,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             span,
+@@ -388,11 +368,6 @@
+         self.assertEqual(parent_span.name, rpc_call)
+         self.assertIs(parent_span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            parent_span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             parent_span,
+@@ -619,11 +594,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # make sure this span errored, with the right status and detail
+         self.assertEqual(span.status.status_code, StatusCode.ERROR)
+         self.assertEqual(
+--- a/tests/test_server_interceptor_filter.py
++++ b/tests/test_server_interceptor_filter.py
+@@ -108,11 +108,6 @@
+             self.assertEqual(span.name, rpc_call)
+             self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-            # Check version and name in span's instrumentation info
+-            self.assertEqualSpanInstrumentationInfo(
+-                span, opentelemetry.instrumentation.grpc
+-            )
+-
+             # Check attributes
+             self.assertSpanHasAttributes(
+                 span,
+@@ -194,11 +189,6 @@
+         self.assertEqual(span.name, rpc_call)
+         self.assertIs(span.kind, trace.SpanKind.SERVER)
+ 
+-        # Check version and name in span's instrumentation info
+-        self.assertEqualSpanInstrumentationInfo(
+-            span, opentelemetry.instrumentation.grpc
+-        )
+-
+         # Check attributes
+         self.assertSpanHasAttributes(
+             span,
