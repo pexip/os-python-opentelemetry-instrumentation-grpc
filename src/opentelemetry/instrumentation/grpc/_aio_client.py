@@ -1,16 +1,5 @@
 # Copyright The OpenTelemetry Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import functools
 import logging
@@ -24,7 +13,9 @@ from opentelemetry.instrumentation.grpc._client import (
 )
 from opentelemetry.instrumentation.utils import is_instrumentation_enabled
 from opentelemetry.propagate import inject
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.rpc_attributes import (
+    RPC_GRPC_STATUS_CODE,
+)
 from opentelemetry.trace.status import Status, StatusCode
 
 logger = logging.getLogger(__name__)
@@ -34,7 +25,7 @@ def _unary_done_callback(span, code, details, response_hook):
     def callback(call):
         try:
             span.set_attribute(
-                SpanAttributes.RPC_GRPC_STATUS_CODE,
+                RPC_GRPC_STATUS_CODE,
                 code.value[0],
             )
             if code != grpc.StatusCode.OK:
@@ -75,7 +66,7 @@ class _BaseAioClientInterceptor(OpenTelemetryClientInterceptor):
     def add_error_details_to_span(span, exc):
         if isinstance(exc, grpc.RpcError):
             span.set_attribute(
-                SpanAttributes.RPC_GRPC_STATUS_CODE,
+                RPC_GRPC_STATUS_CODE,
                 exc.code().value[0],
             )
         span.set_status(

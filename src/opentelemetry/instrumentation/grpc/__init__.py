@@ -1,16 +1,5 @@
 # Copyright The OpenTelemetry Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 # pylint:disable=no-name-in-module
 # pylint:disable=relative-beyond-top-level
@@ -149,7 +138,7 @@ Usage Aio Client
     grpc_client_instrumentor.instrument()
 
     async def run():
-        with grpc.aio.insecure_channel("localhost:50051") as channel:
+        async with grpc.aio.insecure_channel("localhost:50051") as channel:
 
             stub = helloworld_pb2_grpc.GreeterStub(channel)
             response = await stub.SayHello(helloworld_pb2.HelloRequest(name="YOU"))
@@ -168,7 +157,7 @@ You can also add the interceptor manually, rather than using
 
     from opentelemetry.instrumentation.grpc import aio_client_interceptors
 
-    channel = grpc.aio.insecure_channel("localhost:12345", interceptors=aio_client_interceptors())
+    async with grpc.aio.insecure_channel("localhost:50051", interceptors=aio_client_interceptors()) as channel:
 
 
 Usage Aio Server
@@ -253,6 +242,11 @@ You can also use the filters directly on the provided interceptors:
 
 .. code-block::
 
+    import grpc
+    from concurrent import futures
+    from opentelemetry.instrumentation.grpc import filters
+    from opentelemetry.instrumentation.grpc import server_interceptor
+
     my_interceptor = server_interceptor(
         filter_ = filters.negate(filters.method_name("TestMethod"))
     )
@@ -315,7 +309,7 @@ class GrpcInstrumentorServer(BaseInstrumentor):
 
     """
 
-    # pylint:disable=attribute-defined-outside-init, redefined-outer-name
+    # pylint:disable=redefined-outer-name
 
     def __init__(self, filter_=None):
         excluded_service_filter = _excluded_service_filter()
@@ -334,7 +328,8 @@ class GrpcInstrumentorServer(BaseInstrumentor):
         tracer_provider = kwargs.get("tracer_provider")
 
         def server(*args, **kwargs):
-            if "interceptors" in kwargs:
+            if "interceptors" in kwargs and kwargs["interceptors"]:
+                kwargs["interceptors"] = list(kwargs["interceptors"])
                 # add our interceptor as the first
                 kwargs["interceptors"].insert(
                     0,
@@ -348,6 +343,7 @@ class GrpcInstrumentorServer(BaseInstrumentor):
                         tracer_provider=tracer_provider, filter_=self._filter
                     )
                 ]
+
             return self._original_func(*args, **kwargs)
 
         grpc.server = server
@@ -367,7 +363,7 @@ class GrpcAioInstrumentorServer(BaseInstrumentor):
 
     """
 
-    # pylint:disable=attribute-defined-outside-init, redefined-outer-name
+    # pylint:disable=redefined-outer-name
 
     def __init__(self, filter_=None):
         excluded_service_filter = _excluded_service_filter()
@@ -386,7 +382,8 @@ class GrpcAioInstrumentorServer(BaseInstrumentor):
         tracer_provider = kwargs.get("tracer_provider")
 
         def server(*args, **kwargs):
-            if "interceptors" in kwargs:
+            if "interceptors" in kwargs and kwargs["interceptors"]:
+                kwargs["interceptors"] = list(kwargs["interceptors"])
                 # add our interceptor as the first
                 kwargs["interceptors"].insert(
                     0,
@@ -498,7 +495,7 @@ class GrpcAioInstrumentorClient(BaseInstrumentor):
 
     """
 
-    # pylint:disable=attribute-defined-outside-init, redefined-outer-name
+    # pylint:disable=redefined-outer-name
 
     def __init__(self, filter_=None):
         excluded_service_filter = _excluded_service_filter()
@@ -516,6 +513,7 @@ class GrpcAioInstrumentorClient(BaseInstrumentor):
 
     def _add_interceptors(self, tracer_provider, kwargs):
         if "interceptors" in kwargs and kwargs["interceptors"]:
+            kwargs["interceptors"] = list(kwargs["interceptors"])
             kwargs["interceptors"] = (
                 aio_client_interceptors(
                     tracer_provider=tracer_provider,
@@ -575,7 +573,7 @@ def client_interceptor(
     Returns:
         An invocation-side interceptor object.
     """
-    from . import _client
+    from . import _client  # noqa: PLC0415
 
     tracer = trace.get_tracer(
         __name__,
@@ -605,7 +603,7 @@ def server_interceptor(tracer_provider=None, filter_=None):
     Returns:
         A service-side interceptor object.
     """
-    from . import _server
+    from . import _server  # noqa: PLC0415
 
     tracer = trace.get_tracer(
         __name__,
@@ -628,7 +626,7 @@ def aio_client_interceptors(
     Returns:
         An invocation-side interceptor object.
     """
-    from . import _aio_client
+    from . import _aio_client  # noqa: PLC0415
 
     tracer = trace.get_tracer(
         __name__,
@@ -674,7 +672,7 @@ def aio_server_interceptor(tracer_provider=None, filter_=None):
     Returns:
         A service-side interceptor object.
     """
-    from . import _aio_server
+    from . import _aio_server  # noqa: PLC0415
 
     tracer = trace.get_tracer(
         __name__,

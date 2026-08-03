@@ -1,17 +1,8 @@
 # Copyright The OpenTelemetry Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 # pylint:disable=cyclic-import
+
+from unittest import mock
 
 import grpc
 
@@ -26,7 +17,13 @@ from opentelemetry.instrumentation.grpc.grpcext._interceptor import (
 )
 from opentelemetry.instrumentation.utils import suppress_instrumentation
 from opentelemetry.propagate import get_global_textmap, set_global_textmap
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.sdk.trace import Span as SdkSpan
+from opentelemetry.semconv._incubating.attributes.rpc_attributes import (
+    RPC_GRPC_STATUS_CODE,
+    RPC_METHOD,
+    RPC_SERVICE,
+    RPC_SYSTEM,
+)
 from opentelemetry.test.mock_textmap import MockTextMapPropagator
 from opentelemetry.test.test_base import TestBase
 
@@ -132,12 +129,10 @@ class TestClientProto(TestBase):
         self.assertSpanHasAttributes(
             span,
             {
-                SpanAttributes.RPC_METHOD: "SimpleMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "SimpleMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -158,12 +153,10 @@ class TestClientProto(TestBase):
         self.assertSpanHasAttributes(
             span,
             {
-                SpanAttributes.RPC_METHOD: "ServerStreamingMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "ServerStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -184,12 +177,10 @@ class TestClientProto(TestBase):
         self.assertSpanHasAttributes(
             span,
             {
-                SpanAttributes.RPC_METHOD: "ClientStreamingMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "ClientStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -212,12 +203,55 @@ class TestClientProto(TestBase):
         self.assertSpanHasAttributes(
             span,
             {
-                SpanAttributes.RPC_METHOD: "BidirectionalStreamingMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "BidirectionalStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
+            },
+        )
+
+    def test_stream_stream_preserves_call_interface(self):
+        """Regression test for issue #1180.
+
+        Bidirectional streaming RPCs must return an object that implements
+        grpc.Call (add_done_callback, cancel, is_active, etc.) rather than
+        a bare generator.  Before the fix, bidi streams were routed through
+        the generator-based _intercept_server_stream, which stripped the
+        grpc.Call interface and caused downstream code to crash with:
+            AttributeError: 'generator' object has no attribute 'add_done_callback'
+        """
+
+        def request_messages():
+            for _ in range(5):
+                yield Request(client_id=1, request_data="data")
+
+        response_iterator = self._stub.BidirectionalStreamingMethod(
+            request_messages(), metadata=(("key", "value"),)
+        )
+
+        for attr in ("add_done_callback", "cancel", "is_active"):
+            self.assertTrue(
+                hasattr(response_iterator, attr),
+                f"bidi stream response missing grpc.Call method '{attr}'",
+            )
+
+        list(response_iterator)
+
+        spans = self.memory_exporter.get_finished_spans()
+        self.assertEqual(len(spans), 1)
+        span = spans[0]
+
+        self.assertEqual(
+            span.name, "/GRPCTestServer/BidirectionalStreamingMethod"
+        )
+        self.assertIs(span.kind, trace.SpanKind.CLIENT)
+        self.assertSpanHasAttributes(
+            span,
+            {
+                RPC_METHOD: "BidirectionalStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -232,6 +266,10 @@ class TestClientProto(TestBase):
             span.status.status_code,
             trace.StatusCode.ERROR,
         )
+        self.assertEqual(
+            span.attributes[RPC_GRPC_STATUS_CODE],
+            grpc.StatusCode.INVALID_ARGUMENT.value[0],
+        )
 
     def test_error_stream_unary(self):
         with self.assertRaises(grpc.RpcError):
@@ -243,6 +281,10 @@ class TestClientProto(TestBase):
         self.assertIs(
             span.status.status_code,
             trace.StatusCode.ERROR,
+        )
+        self.assertEqual(
+            span.attributes[RPC_GRPC_STATUS_CODE],
+            grpc.StatusCode.INVALID_ARGUMENT.value[0],
         )
 
     def test_error_unary_stream(self):
@@ -256,6 +298,10 @@ class TestClientProto(TestBase):
             span.status.status_code,
             trace.StatusCode.ERROR,
         )
+        self.assertEqual(
+            span.attributes[RPC_GRPC_STATUS_CODE],
+            grpc.StatusCode.INVALID_ARGUMENT.value[0],
+        )
 
     def test_error_stream_stream(self):
         with self.assertRaises(grpc.RpcError):
@@ -268,6 +314,36 @@ class TestClientProto(TestBase):
             span.status.status_code,
             trace.StatusCode.ERROR,
         )
+        self.assertEqual(
+            span.attributes[RPC_GRPC_STATUS_CODE],
+            grpc.StatusCode.INVALID_ARGUMENT.value[0],
+        )
+
+    def test_client_interceptor_falsy_response(
+        self,
+    ):
+        """ensure that client interceptor closes the span only once even if the response is falsy."""
+
+        with mock.patch.object(SdkSpan, "end") as span_end_mock:
+            tracer_provider, _exporter = self.create_tracer_provider()
+            tracer = tracer_provider.get_tracer(__name__)
+
+            interceptor = OpenTelemetryClientInterceptor(tracer)
+
+            def invoker(_request, _metadata):
+                return {}
+
+            request = Request(client_id=1, request_data="data")
+            interceptor.intercept_unary(
+                request,
+                {},
+                _UnaryClientInfo(
+                    full_method="/GRPCTestServer/SimpleMethod",
+                    timeout=None,
+                ),
+                invoker=invoker,
+            )
+            self.assertEqual(span_end_mock.call_count, 1)
 
     def test_client_interceptor_trace_context_propagation(
         self,

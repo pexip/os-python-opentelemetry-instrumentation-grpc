@@ -1,29 +1,25 @@
 # Copyright The OpenTelemetry Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import grpc
 import grpc.aio
-import wrapt
 
-from opentelemetry.semconv.trace import SpanAttributes
+try:
+    # wrapt 2.0.0+
+    from wrapt import BaseObjectProxy  # pylint: disable=no-name-in-module
+except ImportError:
+    from wrapt import ObjectProxy as BaseObjectProxy
+
+from opentelemetry.semconv._incubating.attributes.rpc_attributes import (
+    RPC_GRPC_STATUS_CODE,
+)
 
 from ._server import OpenTelemetryServerInterceptor, _wrap_rpc_behavior
 from ._utilities import _server_status
 
 
-# pylint:disable=abstract-method
-class _OpenTelemetryAioServicerContext(wrapt.ObjectProxy):
+# pylint:disable=abstract-method,no-member
+class _OpenTelemetryAioServicerContext(BaseObjectProxy):
     def __init__(self, servicer_context, active_span):
         super().__init__(servicer_context)
         self._self_active_span = active_span
@@ -34,7 +30,7 @@ class _OpenTelemetryAioServicerContext(wrapt.ObjectProxy):
         self._self_code = code
         self._self_details = details
         self._self_active_span.set_attribute(
-            SpanAttributes.RPC_GRPC_STATUS_CODE, code.value[0]
+            RPC_GRPC_STATUS_CODE, code.value[0]
         )
         status = _server_status(code, details)
         self._self_active_span.set_status(status)
@@ -44,7 +40,7 @@ class _OpenTelemetryAioServicerContext(wrapt.ObjectProxy):
         self._self_code = code
         details = self._self_details or code.value[1]
         self._self_active_span.set_attribute(
-            SpanAttributes.RPC_GRPC_STATUS_CODE, code.value[0]
+            RPC_GRPC_STATUS_CODE, code.value[0]
         )
         if code != grpc.StatusCode.OK:
             status = _server_status(code, details)
