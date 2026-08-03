@@ -1,16 +1,5 @@
 # Copyright The OpenTelemetry Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 # pylint:disable=unused-argument
 # pylint:disable=no-self-use
@@ -19,6 +8,7 @@ import contextlib
 import tempfile
 import threading
 from concurrent import futures
+from unittest import mock
 
 import grpc
 
@@ -29,7 +19,16 @@ from opentelemetry.instrumentation.grpc import (
     server_interceptor,
 )
 from opentelemetry.sdk import trace as trace_sdk
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.net_attributes import (
+    NET_PEER_IP,
+    NET_PEER_NAME,
+)
+from opentelemetry.semconv._incubating.attributes.rpc_attributes import (
+    RPC_GRPC_STATUS_CODE,
+    RPC_METHOD,
+    RPC_SERVICE,
+    RPC_SYSTEM,
+)
 from opentelemetry.test.test_base import TestBase
 from opentelemetry.trace import StatusCode
 
@@ -81,8 +80,8 @@ class Servicer(GRPCTestServerServicer):
 
 class TestOpenTelemetryServerInterceptor(TestBase):
     net_peer_span_attributes = {
-        SpanAttributes.NET_PEER_IP: "[::1]",
-        SpanAttributes.NET_PEER_NAME: "localhost",
+        NET_PEER_IP: "[::1]",
+        NET_PEER_NAME: "localhost",
     }
 
     @contextlib.contextmanager
@@ -104,41 +103,44 @@ class TestOpenTelemetryServerInterceptor(TestBase):
 
         grpc_server_instrumentor = GrpcInstrumentorServer()
         grpc_server_instrumentor.instrument()
-        with self.server(max_workers=1) as (server, channel):
-            server.add_generic_rpc_handlers((UnaryUnaryRpcHandler(handler),))
-            rpc_call = "TestServicer/handler"
-            try:
-                server.start()
-                channel.unary_unary(rpc_call)(b"test")
-            finally:
-                server.stop(None)
 
-            spans_list = self.memory_exporter.get_finished_spans()
-            self.assertEqual(len(spans_list), 1)
-            span = spans_list[0]
-            self.assertEqual(span.name, rpc_call)
-            self.assertIs(span.kind, trace.SpanKind.SERVER)
+        try:
+            with self.server(max_workers=1) as (server, channel):
+                server.add_generic_rpc_handlers(
+                    (UnaryUnaryRpcHandler(handler),)
+                )
+                rpc_call = "TestServicer/handler"
+                try:
+                    server.start()
+                    channel.unary_unary(rpc_call)(b"test")
+                finally:
+                    server.stop(None)
 
-            # Check version and name in span's instrumentation info
-            self.assertEqualSpanInstrumentationScope(
-                span, opentelemetry.instrumentation.grpc
-            )
-
-            # Check attributes
-            self.assertSpanHasAttributes(
-                span,
-                {
-                    **self.net_peer_span_attributes,
-                    SpanAttributes.RPC_METHOD: "handler",
-                    SpanAttributes.RPC_SERVICE: "TestServicer",
-                    SpanAttributes.RPC_SYSTEM: "grpc",
-                    SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                        0
-                    ],
-                },
-            )
-
+        finally:
             grpc_server_instrumentor.uninstrument()
+
+        spans_list = self.memory_exporter.get_finished_spans()
+        self.assertEqual(len(spans_list), 1)
+        span = spans_list[0]
+        self.assertEqual(span.name, rpc_call)
+        self.assertIs(span.kind, trace.SpanKind.SERVER)
+
+        # Check version and name in span's instrumentation info
+        self.assertEqualSpanInstrumentationScope(
+            span, opentelemetry.instrumentation.grpc
+        )
+
+        # Check attributes
+        self.assertSpanHasAttributes(
+            span,
+            {
+                **self.net_peer_span_attributes,
+                RPC_METHOD: "handler",
+                RPC_SERVICE: "TestServicer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
+            },
+        )
 
     def test_uninstrument(self):
         def handler(request, context):
@@ -197,12 +199,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "SimpleMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "SimpleMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -261,12 +261,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             parent_span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "SimpleMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "SimpleMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -316,12 +314,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "ServerStreamingMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "ServerStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -380,12 +376,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             parent_span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "ServerStreamingMethod",
-                SpanAttributes.RPC_SERVICE: "GRPCTestServer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                    0
-                ],
+                RPC_METHOD: "ServerStreamingMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -468,12 +462,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
                 span,
                 {
                     **self.net_peer_span_attributes,
-                    SpanAttributes.RPC_METHOD: "handler",
-                    SpanAttributes.RPC_SERVICE: "TestServicer",
-                    SpanAttributes.RPC_SYSTEM: "grpc",
-                    SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                        0
-                    ],
+                    RPC_METHOD: "handler",
+                    RPC_SERVICE: "TestServicer",
+                    RPC_SYSTEM: "grpc",
+                    RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
                 },
             )
 
@@ -534,12 +526,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
                 span,
                 {
                     **self.net_peer_span_attributes,
-                    SpanAttributes.RPC_METHOD: "handler",
-                    SpanAttributes.RPC_SERVICE: "TestServicer",
-                    SpanAttributes.RPC_SYSTEM: "grpc",
-                    SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[
-                        0
-                    ],
+                    RPC_METHOD: "handler",
+                    RPC_SERVICE: "TestServicer",
+                    RPC_SYSTEM: "grpc",
+                    RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
                 },
             )
 
@@ -610,12 +600,10 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "error_status_handler",
-                SpanAttributes.RPC_SERVICE: "TestServicer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.INTERNAL.value[
-                    0
-                ],
+                RPC_METHOD: "error_status_handler",
+                RPC_SERVICE: "TestServicer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.INTERNAL.value[0],
             },
         )
 
@@ -638,12 +626,59 @@ class TestOpenTelemetryServerInterceptor(TestBase):
             span,
             {
                 **self.net_peer_span_attributes,
-                SpanAttributes.RPC_METHOD: "unset_status_handler",
-                SpanAttributes.RPC_SERVICE: "TestServicer",
-                SpanAttributes.RPC_SYSTEM: "grpc",
-                SpanAttributes.RPC_GRPC_STATUS_CODE: grpc.StatusCode.FAILED_PRECONDITION.value[
+                RPC_METHOD: "unset_status_handler",
+                RPC_SERVICE: "TestServicer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.FAILED_PRECONDITION.value[
                     0
                 ],
+            },
+        )
+
+    def test_non_list_interceptors(self):
+        """Check that we handle non-list interceptors correctly."""
+        grpc_server_instrumentor = GrpcInstrumentorServer()
+        grpc_server_instrumentor.instrument()
+
+        try:
+            with self.server(
+                max_workers=1,
+                interceptors=(mock.MagicMock(),),
+            ) as (server, channel):
+                add_GRPCTestServerServicer_to_server(Servicer(), server)
+
+                rpc_call = "/GRPCTestServer/SimpleMethod"
+                request = Request(client_id=1, request_data="test")
+                msg = request.SerializeToString()
+                try:
+                    server.start()
+                    channel.unary_unary(rpc_call)(msg)
+                finally:
+                    server.stop(None)
+        finally:
+            grpc_server_instrumentor.uninstrument()
+
+        spans_list = self.memory_exporter.get_finished_spans()
+        self.assertEqual(len(spans_list), 1)
+        span = spans_list[0]
+
+        self.assertEqual(span.name, rpc_call)
+        self.assertIs(span.kind, trace.SpanKind.SERVER)
+
+        # Check version and name in span's instrumentation info
+        self.assertEqualSpanInstrumentationScope(
+            span, opentelemetry.instrumentation.grpc
+        )
+
+        # Check attributes
+        self.assertSpanHasAttributes(
+            span,
+            {
+                **self.net_peer_span_attributes,
+                RPC_METHOD: "SimpleMethod",
+                RPC_SERVICE: "GRPCTestServer",
+                RPC_SYSTEM: "grpc",
+                RPC_GRPC_STATUS_CODE: grpc.StatusCode.OK.value[0],
             },
         )
 
@@ -655,9 +690,10 @@ class TestOpenTelemetryServerInterceptorUnix(
 
     @contextlib.contextmanager
     def server(self, max_workers=1, interceptors=None):
-        with futures.ThreadPoolExecutor(
-            max_workers=max_workers
-        ) as executor, tempfile.TemporaryDirectory() as tmp:
+        with (
+            futures.ThreadPoolExecutor(max_workers=max_workers) as executor,
+            tempfile.TemporaryDirectory() as tmp,
+        ):
             server = grpc.server(
                 executor,
                 options=(("grpc.so_reuseport", 0),),
